@@ -1,19 +1,22 @@
 import json
+import os.path
 import time
 from datetime import datetime, timedelta
 
 import requests
 
 from core.config import settings
-from models.telegram import GetUpdatesResponse, SendMessage, SendFile
+from models.telegram import GetUpdatesResponse, SendMessage, SendFile, FileResult
 from utils.helper.logger import setup_logging
 
 logger = setup_logging()
 
 
 class TelegramBot:
+    # https://core.telegram.org/bots/api#available-methods
     def __init__(self):
         self.api_url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/"
+        self.file_url = f"https://api.telegram.org/file/bot{settings.TELEGRAM_BOT_TOKEN}/"
         self.session = requests.Session()
         self.last_update_id = self._get_last_update_id()
 
@@ -40,6 +43,36 @@ class TelegramBot:
 
         self.send_message(SendMessage(text="Haven't received any response from you"))
         return None
+
+    def get_latest_response(self):
+        params = {"offset": self.last_update_id + 1, "limit": 1}
+        response = self.session.get(self.api_url + "getUpdates", params=params)
+        response.raise_for_status()
+        updates = GetUpdatesResponse.model_validate(response.json())
+
+        if updates.result:
+            self.last_update_id = updates.result[0].update_id
+            return updates.result[0].message
+        return None
+
+    def get_file_object(self, file_id):
+        # Get file metadata
+        params = {"file_id": file_id}
+        response = self.session.get(self.api_url + "getFile", params=params)
+        response.raise_for_status()
+        file_result = FileResult.model_validate(response.json()["result"])
+
+        # Download file
+        response = self.session.get(self.file_url + file_result.file_path)
+        response.raise_for_status()
+
+        # Save file locally
+        file_path = os.path.join('scratchpad', 'telegram', os.path.basename(file_result.file_path))
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, 'wb') as file:
+            file.write(response.content)
+
+        return response.content
 
     def ask_user(self, message: SendMessage):
         self.send_message(message)

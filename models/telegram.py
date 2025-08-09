@@ -1,4 +1,4 @@
-from typing import Optional, List, BinaryIO
+from typing import Optional, List, BinaryIO, Union
 
 from pydantic import BaseModel
 from sqlmodel import Field
@@ -6,19 +6,34 @@ from sqlmodel import Field
 from core.config import settings
 
 
+class PhotoSize(BaseModel):
+    file_id: str
+    file_unique_id: str
+    file_size: int
+    width: int
+    height: int
+
+
 class Message(BaseModel):
     message_id: int
     text: Optional[str] = None
+    photo: Optional[List[PhotoSize]] = None
 
 
 class UpdateResult(BaseModel):
     update_id: int
     message: Optional[Message] = None
 
+class FileResult(BaseModel):
+    file_id: str
+    file_unique_id: str
+    file_size: int
+    file_path: str
+
 
 class GetUpdatesResponse(BaseModel):
     ok: bool
-    result: List[UpdateResult]
+    result: Union[List[UpdateResult], FileResult]
 
 
 class SendMessage(BaseModel):

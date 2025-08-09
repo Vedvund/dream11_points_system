@@ -5,10 +5,11 @@ pydantic
 pydantic-settings
 sqlmodel
 python-dotenv
-pydantic_core
 openai
 langchain-openai
 langchain
 langchain_core
 psycopg2-binary
 matplotlib
+requests
+pydantic_core

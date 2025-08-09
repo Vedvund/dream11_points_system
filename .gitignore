@@ -181,3 +181,4 @@ scratch_pad
 *.csv
 *.pdf
 *.png
+alembic/versions
